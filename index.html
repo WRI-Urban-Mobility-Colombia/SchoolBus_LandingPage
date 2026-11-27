@@ -1158,6 +1158,27 @@
       border-radius: 12px;
       overflow: hidden
     }
+    .img-cred {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 2;
+      padding: 6px 12px;
+      background: rgba(0, 0, 0, .7);
+      color: #fff;
+      font-size: .75rem;
+      line-height: 1.3;
+      text-align: left
+    }
+    .img-cred a {
+      color: #fff;
+      text-decoration: underline
+    }
+    .img-cred a:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px
+    }
     .vs-f img, .vs-ph {
       position: absolute;
       inset: 0;
@@ -1312,7 +1333,7 @@
         <h2 id="porque-salud" style="margin-top:48px">Las niñas y los niños, los más vulnerables ante los entornos contaminados</h2>
 
         <div class="two">
-          <img src="Kids_health1.jpg" alt="Niño viajando en un bus escolar eléctrico" width="600" height="600">
+          <figure id="img-salud" style="position:relative;margin:0;align-self:start"></figure>
           <div class="grid" style="grid-template-columns:1fr" data-s="salud"></div>
         </div>
         <div data-q></div>
@@ -1989,6 +2010,25 @@
       return ""
     };
     const link = (r, t) => r.url ? `<a href="${E(r.url)}" target="_blank" rel="noopener">${E(t||r.titulo)}</a>` : E(t || r.titulo);
+    /* Nombre corto del sitio: https://www.pexels.com/photo/... -> "pexels"; commons.wikimedia.org -> "wikimedia"; algo.gov.co -> "algo" */
+    const siteName = u => {
+      try {
+        const p = new URL(u).hostname.replace(/^www\./, "").split(".");
+        p.pop();
+        while (p.length > 1 && ["com", "co", "org", "net", "gov", "edu", "ac", "gob"].includes(p[p.length - 1])) p.pop();
+        return p[p.length - 1] || u
+      } catch (e) {
+        return u
+      }
+    };
+    /* Crédito de imagen sobre la foto: columnas referencia_img (autor) y referencia_img_link (url de la foto) */
+    const imgCred = r => {
+      const a = (r.referencia_img || "").trim(),
+        u = (r.referencia_img_link || "").trim();
+      if (!a && !u) return "";
+      const s = u ? `<a href="${E(u)}" target="_blank" rel="noopener">${E(siteName(u))}</a>` : "";
+      return `<span class="img-cred">Fuente: ${E(a)}${a && s ? " en " : ""}${s}</span>`
+    };
 
     function tcoHelp(rows) {
       const root = document.querySelector(".bce-tco");
@@ -2050,6 +2090,9 @@
           return `<div class="card">${big?`<div class="big">${P(r.titulo)}</div>`:`<h3>${s=="recurso"?link(r):P(r.titulo)}</h3>`}<p>${P(r.texto)}</p>${src(r,s!="recurso")}</div>`
         }).join("")
       });
+      /* Imagen de la sección salud: fila "imagen_salud" de contenido.csv (imagen, alt, referencia_img, referencia_img_link) */
+      const hs = S("imagen_salud")[0];
+      if (hs && hs.imagen) $("#img-salud").innerHTML = `<img src="${E(hs.imagen)}" alt="${E(hs.alt||"")}" width="600" height="600">${imgCred(hs)}`;
       const q = S("cita")[0];
       if (q) $("[data-q]").innerHTML = `<blockquote>${P(q.titulo)}<br><small>${P(q.texto)}${q.fuente?"Fuente: "+(q.url_fuente?`<a href="${E(q.url_fuente)}" target="_blank" rel="noopener">${P(q.fuente)}</a>`:P(q.fuente)):""}</small></blockquote>`;
       const B = S("brecha"),
@@ -2061,7 +2104,7 @@
       io.observe($("#brecha"));
       const C = S("caso"),
         draw = f => $("#casosg").innerHTML = C.filter(r => !f || r.grupo == f).map(r => `<div class="card">
-  ${r.imagen ? `<div class="ph" style="min-height:110px;margin-bottom:10px"><img src="${E(r.imagen)}" alt="${E(r.alt || "")}" loading="lazy" style="max-width:100%;max-height:200px;width:auto;height:auto;object-fit:contain;display:inline-block"></div>` : ""}
+  ${r.imagen ? `<div class="ph" style="position:relative;min-height:110px;margin-bottom:10px"><img src="${E(r.imagen)}" alt="${E(r.alt || "")}" loading="lazy" style="max-width:100%;max-height:200px;width:auto;height:auto;object-fit:contain;display:inline-block">${imgCred(r)}</div>` : ""}
   <h3>${E(r.titulo)}</h3>
   <p>${P(r.texto)}</p>
   ${src(r)}
@@ -2090,7 +2133,7 @@
             b.tabIndex = k == i ? 0 : -1
           });
           $("#vspanel").setAttribute("aria-labelledby", "vt" + i);
-          $("#vspanel").innerHTML = `<div class="vs-p"><figure class="vs-f">${r.imagen?`<img src="${E(r.imagen)}" alt="${E(r.alt||"")}" width="1400" height="600" loading="lazy">`:`<span class="vs-ph">[imagen 7:3]</span>`}</figure><span class="vs-b">Paso ${i+1} de ${cur.length}</span><h3>${E(r.titulo)}</h3><p>${P(r.texto)}</p></div>${tg?`<div class="vs-s"><div class="vs-st">Fuentes y recursos</div><div class="vs-tags">${tg}</div></div>`:""}`;
+          $("#vspanel").innerHTML = `<div class="vs-p"><figure class="vs-f">${r.imagen?`<img src="${E(r.imagen)}" alt="${E(r.alt||"")}" width="1400" height="600" loading="lazy">${imgCred(r)}`:`<span class="vs-ph">[imagen 7:3]</span>`}</figure><span class="vs-b">Paso ${i+1} de ${cur.length}</span><h3>${E(r.titulo)}</h3><p>${P(r.texto)}</p></div>${tg?`<div class="vs-s"><div class="vs-st">Fuentes y recursos</div><div class="vs-tags">${tg}</div></div>`:""}`;
           document.querySelectorAll("#vspanel img").forEach(m => m.onerror = () => {
             const d = document.createElement("span");
             d.className = "vs-ph";
@@ -2127,7 +2170,7 @@
       show(pf[0]);
       $("#cargag").innerHTML = S("carga").map((r, i) => {
         const ls = S("carga_link").filter(l => l.grupo == r.titulo);
-        return `<article class="cr"><div class="cr-i">${r.imagen?`<img src="${E(r.imagen)}" alt="${E(r.alt||"")}" width="1200" height="675" loading="lazy">`:`<span class="cr-ph">[imagen 16:9]</span>`}</div><div class="cr-p"><h3>${E(r.titulo)}</h3><div class="cr-x"><p>${P(r.texto)}</p>${src(r)}<button class="cr-b" type="button" aria-expanded="false" aria-controls="cl${i}">Ver recursos de consulta (${ls.length}) ▾</button><ul class="cr-l" id="cl${i}" hidden>${ls.map(l=>`<li>${link(l)}</li>`).join("")||"<li>Sin recursos aún</li>"}</ul></div></div></article>`
+        return `<article class="cr"><div class="cr-i">${r.imagen?`<img src="${E(r.imagen)}" alt="${E(r.alt||"")}" width="1200" height="675" loading="lazy">${imgCred(r)}`:`<span class="cr-ph">[imagen 16:9]</span>`}</div><div class="cr-p"><h3>${E(r.titulo)}</h3><div class="cr-x"><p>${P(r.texto)}</p>${src(r)}<button class="cr-b" type="button" aria-expanded="false" aria-controls="cl${i}">Ver recursos de consulta (${ls.length}) ▾</button><ul class="cr-l" id="cl${i}" hidden>${ls.map(l=>`<li>${link(l)}</li>`).join("")||"<li>Sin recursos aún</li>"}</ul></div></div></article>`
       }).join("");
       document.querySelectorAll("#cargag img").forEach(i => i.onerror = () => {
         const d = document.createElement("span");
